@@ -43,11 +43,12 @@ render();
 function render() {
   const route = getRoute();
   const content = renderRoute(route);
+  const isGateway = route.path === "/" || route.path === "/home";
   app.innerHTML = `
-    <div class="site-shell">
-      ${renderHeader(route.path)}
+    <div class="site-shell ${isGateway ? "gateway-shell" : ""}">
+      ${isGateway ? "" : renderHeader(route.path)}
       <main class="main">${content}</main>
-      ${renderFooter()}
+      ${isGateway ? "" : renderFooter()}
     </div>
   `;
   bindPage(route);
@@ -62,7 +63,7 @@ function getRoute() {
 
 function renderRoute(route) {
   const path = route.path;
-  if (path === "/" || path === "/home") return renderHome();
+  if (path === "/" || path === "/home") return renderLanguageGateway();
   if (path === "/quote") return renderQuotePage();
   if (path === "/ship") return renderShipmentPage(Number(route.params.get("step") || 1));
   if (path === "/sender") return renderShipmentPage(2);
@@ -157,6 +158,100 @@ function renderFooter() {
       </div>
       <div class="container footer-bottom">© ${new Date().getFullYear()} 快递自助寄件平台。当前为前端演示版本，费用与时效为模拟数据。</div>
     </footer>
+  `;
+}
+
+function renderLanguageGateway() {
+  const languageCards = [
+    {
+      lang: "中文",
+      price: "中国地区价格",
+      symbol: "¥",
+      flag: "/assets/images/language/flag-cn.png",
+      href: "#/quote?market=cn&lang=zh-CN",
+      code: "CN"
+    },
+    {
+      lang: "English",
+      price: "Price for Singapore",
+      symbol: "S$",
+      flag: "/assets/images/language/flag-sg.png",
+      href: "#/quote?market=sg&lang=en",
+      code: "SG"
+    },
+    {
+      lang: "ภาษาไทย",
+      price: "ราคาในประเทศไทย",
+      symbol: "฿",
+      flag: "/assets/images/language/flag-th.png",
+      href: "#/quote?market=th&lang=th",
+      code: "TH"
+    },
+    {
+      lang: "Tiếng Việt",
+      price: "Giá tại Việt Nam",
+      symbol: "₫",
+      flag: "/assets/images/language/flag-vn.png",
+      href: "#/quote?market=vn&lang=vi",
+      code: "VN"
+    },
+    {
+      lang: "Bahasa Melayu",
+      price: "Harga di Malaysia",
+      symbol: "RM",
+      flag: "/assets/images/language/flag-my.png",
+      href: "#/quote?market=my&lang=ms",
+      code: "MY"
+    },
+    {
+      lang: "ພາສາລາວ",
+      price: "ລາຄາໃນລາວ",
+      symbol: "K",
+      flag: "/assets/images/language/flag-la.png",
+      href: "#/quote?market=la&lang=lo",
+      code: "LA"
+    }
+  ];
+  const features = [
+    ["安全可靠", "SAFE & SECURE", "/assets/images/language/icon-secure.png"],
+    ["快速访问", "FAST ACCESS", "/assets/images/language/icon-fast.png"],
+    ["多语言支持", "MULTI-LANGUAGE SUPPORT", "/assets/images/language/icon-language.png"],
+    ["优质服务", "PREMIUM SERVICE", "/assets/images/language/icon-premium.png"]
+  ];
+  return `
+    <section class="language-gateway" aria-label="语言选择入口">
+      <div class="language-orbit"></div>
+      <div class="language-stage">
+        <header class="language-welcome">
+          <p>秘语贸易欢迎您</p>
+          <h1>Welcome to Secret Language Trade</h1>
+          <p>ยินดีต้อนรับสู่การค้าภาษาลับ</p>
+          <p>Chào mừng bạn đến với Thương mại Ngôn ngữ Bí mật</p>
+        </header>
+        <div class="language-grid">
+          ${languageCards.map((card) => `
+            <a class="language-card" href="${card.href}" data-language-card="${card.code}" aria-label="${card.lang} ${card.price}">
+              <span class="card-corner top-left"></span>
+              <span class="card-corner top-right"></span>
+              <span class="card-corner bottom-left"></span>
+              <span class="card-corner bottom-right"></span>
+              <span class="language-code">${card.code}</span>
+              <img class="language-flag" src="${card.flag}" alt="${card.lang}">
+              <span class="language-name">${card.lang}</span>
+              <span class="language-price"><b>${card.symbol}</b><span>${card.price}</span></span>
+            </a>
+          `).join("")}
+        </div>
+        <footer class="language-features">
+          ${features.map(([title, sub, icon]) => `
+            <a class="language-feature" href="#/tools">
+              <img src="${icon}" alt="">
+              <span><b>${title}</b><small>${sub}</small></span>
+            </a>
+          `).join("")}
+        </footer>
+      </div>
+    </section>
   `;
 }
 
@@ -1449,6 +1544,11 @@ function renderNotFound() {
 function bindPage(route) {
   document.querySelector("[data-menu-toggle]")?.addEventListener("click", () => {
     document.querySelector("#site-header")?.classList.toggle("menu-open");
+  });
+  document.querySelectorAll("[data-language-card]").forEach((card) => {
+    card.addEventListener("click", () => {
+      localStorage.setItem("kd_selected_market", card.dataset.languageCard || "");
+    });
   });
 
   document.querySelectorAll("[data-faq-toggle]").forEach((button) => {

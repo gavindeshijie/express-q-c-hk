@@ -222,6 +222,290 @@ button {
   flex: 1;
 }
 
+.gateway-shell {
+  background: #03000b;
+}
+
+.gateway-shell .main {
+  min-height: 100svh;
+}
+
+.language-gateway {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  color: #f8f3ff;
+  background:
+    linear-gradient(180deg, rgba(4, 0, 16, 0.16), rgba(4, 0, 16, 0.30)),
+    url("/assets/images/language-gateway-bg.png") center / cover no-repeat,
+    #03000b;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.language-gateway::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.48), rgba(20, 0, 52, 0.08) 50%, rgba(0, 0, 0, 0.48)),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0) 30%, rgba(2, 0, 10, 0.34) 100%);
+  pointer-events: none;
+}
+
+.language-orbit {
+  position: absolute;
+  left: 50%;
+  top: 34px;
+  width: min(92vw, 900px);
+  height: 210px;
+  transform: translateX(-50%);
+  border-top: 2px solid rgba(177, 99, 255, 0.78);
+  border-radius: 50%;
+  box-shadow: 0 -8px 28px rgba(143, 63, 255, 0.56);
+  pointer-events: none;
+}
+
+.language-stage {
+  position: relative;
+  z-index: 1;
+  width: min(70vw, 710px);
+  max-width: 710px;
+  min-width: 0;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 auto;
+  padding: 88px 0 24px;
+}
+
+.language-welcome {
+  display: grid;
+  gap: 8px;
+  text-align: center;
+  text-shadow: 0 0 18px rgba(195, 144, 255, 0.78), 0 0 30px rgba(96, 35, 255, 0.55);
+}
+
+.language-welcome h1,
+.language-welcome p {
+  margin: 0;
+  color: #f5efff;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.language-welcome h1 {
+  font-size: clamp(25px, 3.1vw, 34px);
+  line-height: 1.18;
+}
+
+.language-welcome p {
+  font-size: clamp(20px, 2.65vw, 30px);
+  line-height: 1.18;
+}
+
+.language-grid {
+  width: 100%;
+  max-width: 710px;
+  justify-self: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 22px;
+  align-content: start;
+  margin-top: 38px;
+}
+
+.language-card {
+  position: relative;
+  isolation: isolate;
+  min-height: 352px;
+  display: grid;
+  grid-template-rows: 145px 76px auto;
+  align-items: center;
+  justify-items: center;
+  padding: 28px 26px 26px;
+  border: 2px solid rgba(196, 135, 255, 0.86);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(11, 4, 26, 0.88), rgba(4, 1, 13, 0.96)),
+    rgba(8, 2, 22, 0.94);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.16) inset,
+    0 0 18px rgba(168, 76, 255, 0.92),
+    0 0 42px rgba(102, 38, 255, 0.68),
+    0 18px 30px rgba(0, 0, 0, 0.62);
+  overflow: hidden;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.language-card::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 1px solid rgba(220, 186, 255, 0.42);
+  border-radius: 22px;
+  pointer-events: none;
+}
+
+.language-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.08), transparent 28%, transparent 68%, rgba(139, 72, 255, 0.16));
+  pointer-events: none;
+}
+
+.language-card:hover,
+.language-card:focus-visible {
+  transform: translateY(-5px) scale(1.015);
+  border-color: rgba(243, 219, 255, 0.98);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+    0 0 24px rgba(210, 150, 255, 1),
+    0 0 56px rgba(126, 55, 255, 0.86),
+    0 22px 36px rgba(0, 0, 0, 0.68);
+}
+
+.card-corner {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-color: rgba(223, 190, 255, 0.95);
+  pointer-events: none;
+}
+
+.card-corner.top-left {
+  top: 9px;
+  left: 9px;
+  border-top: 4px solid;
+  border-left: 4px solid;
+  border-radius: 18px 0 0 0;
+}
+
+.card-corner.top-right {
+  top: 9px;
+  right: 9px;
+  border-top: 4px solid;
+  border-right: 4px solid;
+  border-radius: 0 18px 0 0;
+}
+
+.card-corner.bottom-left {
+  bottom: 9px;
+  left: 9px;
+  border-bottom: 4px solid;
+  border-left: 4px solid;
+  border-radius: 0 0 0 18px;
+}
+
+.card-corner.bottom-right {
+  right: 9px;
+  bottom: 9px;
+  border-right: 4px solid;
+  border-bottom: 4px solid;
+  border-radius: 0 0 18px 0;
+}
+
+.language-code {
+  position: absolute;
+  top: 17px;
+  right: 22px;
+  color: rgba(216, 184, 255, 0.64);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.language-flag {
+  width: min(78%, 245px);
+  aspect-ratio: 1.73;
+  object-fit: cover;
+  border-radius: 24px;
+  filter: saturate(1.16) contrast(1.12) drop-shadow(0 0 24px rgba(162, 72, 255, 0.75));
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.55);
+}
+
+.language-name {
+  align-self: end;
+  color: #f8f4ff;
+  font-size: clamp(34px, 4vw, 48px);
+  line-height: 1.08;
+  text-align: center;
+  font-weight: 400;
+  text-shadow: 0 0 18px rgba(210, 176, 255, 0.78);
+}
+
+.language-price {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  color: #d9c7ff;
+  font-size: clamp(20px, 2.25vw, 28px);
+}
+
+.language-price b {
+  color: #b56cff;
+  font-size: clamp(34px, 4vw, 48px);
+  line-height: 1;
+  font-weight: 400;
+  text-shadow: 0 0 18px rgba(177, 92, 255, 0.95);
+}
+
+.language-price span {
+  color: #d9cff6;
+  font-weight: 300;
+  line-height: 1.18;
+}
+
+.language-features {
+  width: min(92vw, 900px);
+  max-width: calc(100vw - 64px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  align-items: end;
+  justify-self: center;
+  min-width: 0;
+  padding-top: 10px;
+  margin-top: auto;
+}
+
+.language-feature {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 82px;
+  color: #fff;
+  text-shadow: 0 0 14px rgba(178, 105, 255, 0.82);
+}
+
+.language-feature img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  border-radius: 16px;
+  filter: drop-shadow(0 0 14px rgba(170, 90, 255, 0.95));
+  mix-blend-mode: screen;
+}
+
+.language-feature span {
+  display: grid;
+  gap: 2px;
+}
+
+.language-feature b {
+  font-size: clamp(17px, 1.8vw, 22px);
+  font-weight: 700;
+}
+
+.language-feature small {
+  color: #e7dcff;
+  font-size: clamp(11px, 1.15vw, 14px);
+  line-height: 1.15;
+}
+
 .hero {
   position: relative;
   overflow: hidden;
@@ -1535,6 +1819,21 @@ button {
 }
 
 @media (max-width: 940px) {
+  .language-stage {
+    width: min(88vw, 760px);
+    padding-top: 64px;
+  }
+
+  .language-card {
+    min-height: 310px;
+    grid-template-rows: 124px 66px auto;
+    padding: 24px 20px 22px;
+  }
+
+  .language-features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .mobile-toggle {
     display: block;
   }
@@ -1614,6 +1913,97 @@ button {
 }
 
 @media (max-width: 640px) {
+  .language-stage {
+    width: min(94vw, 520px);
+    gap: 14px;
+    padding: 42px 0 22px;
+  }
+
+  .language-orbit {
+    top: 24px;
+    width: 118vw;
+  }
+
+  .language-welcome {
+    gap: 5px;
+  }
+
+  .language-welcome h1 {
+    font-size: 20px;
+  }
+
+  .language-welcome p {
+    font-size: 17px;
+  }
+
+  .language-grid {
+    gap: 12px;
+  }
+
+  .language-card {
+    min-height: 236px;
+    grid-template-rows: 88px 52px auto;
+    padding: 18px 12px 16px;
+    border-radius: 20px;
+  }
+
+  .language-card::before {
+    inset: 6px;
+    border-radius: 16px;
+  }
+
+  .card-corner {
+    width: 28px;
+    height: 28px;
+  }
+
+  .language-code {
+    display: none;
+  }
+
+  .language-flag {
+    width: 82%;
+    border-radius: 16px;
+  }
+
+  .language-name {
+    font-size: 25px;
+  }
+
+  .language-price {
+    gap: 7px;
+    font-size: 13px;
+  }
+
+  .language-price b {
+    font-size: 28px;
+  }
+
+  .language-features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .language-feature {
+    grid-template-columns: 44px 1fr;
+    min-height: 56px;
+    gap: 7px;
+  }
+
+  .language-feature img {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .language-feature b {
+    font-size: 14px;
+  }
+
+  .language-feature small {
+    font-size: 10px;
+  }
+
   .container {
     width: min(100% - 22px, 1160px);
   }

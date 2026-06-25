@@ -1,4 +1,4 @@
-import { countries, regionRates } from "./data.js";
+import { countries, dutyProfiles, hsCodeSamples, regionRates } from "./data.js";
 
 const money = new Intl.NumberFormat("zh-CN", {
   style: "currency",
@@ -62,6 +62,63 @@ export function calculateQuote(input) {
 
 export function formatMoney(amount) {
   return money.format(Number(amount || 0));
+}
+
+export function estimateDuty(input) {
+  const destinationRegion = getRegion(input.destination);
+  const profile = dutyProfiles.find((item) => item.region === destinationRegion) || dutyProfiles.find((item) => item.region === "其他地区");
+  const declaredValue = positive(input.declaredValue);
+  const freight = positive(input.freight);
+  const dutyBase = declaredValue + freight;
+  const duty = dutyBase * profile.duty;
+  const vat = (dutyBase + duty) * profile.vat;
+  const total = duty + vat + profile.clearanceFee;
+  return {
+    destinationRegion,
+    declaredValue,
+    freight,
+    dutyRate: profile.duty,
+    vatRate: profile.vat,
+    clearanceFee: profile.clearanceFee,
+    duty: round(duty),
+    vat: round(vat),
+    total: round(total),
+    incoterm: input.incoterm || "DDU",
+    notes: [
+      "税费为模拟估算，真实金额以目的国家海关和承运渠道为准。",
+      input.incoterm === "DDP" ? "DDP 表示寄件方预付税费，适合提升收件体验。" : "DDU 表示税费可能由收件人支付，需提前告知收件人。"
+    ]
+  };
+}
+
+export function lookupHsCode(keyword) {
+  const query = String(keyword || "").trim().toLowerCase();
+  if (!query) return hsCodeSamples;
+  const result = hsCodeSamples.filter((item) => {
+    return `${item.keyword} ${item.code} ${item.name} ${item.note}`.toLowerCase().includes(query);
+  });
+  return result.length ? result : [hsCodeSamples[hsCodeSamples.length - 1]];
+}
+
+export function scoreAddress(input) {
+  const checks = [
+    { label: "姓名", ok: Boolean(String(input.name || "").trim()) },
+    { label: "电话", ok: Boolean(String(input.phone || "").trim()) },
+    { label: "邮箱", ok: /@/.test(String(input.email || "")) },
+    { label: "国家/地区", ok: Boolean(String(input.country || "").trim()) },
+    { label: "城市", ok: Boolean(String(input.city || "").trim()) },
+    { label: "详细地址", ok: String(input.address || "").trim().length >= 8 },
+    { label: "邮编", ok: Boolean(String(input.postalCode || "").trim()) },
+    { label: "税号或识别号", ok: Boolean(String(input.taxId || "").trim()) || input.addressType !== "商业" }
+  ];
+  const passed = checks.filter((item) => item.ok).length;
+  const score = Math.round((passed / checks.length) * 100);
+  return {
+    score,
+    level: score >= 90 ? "优秀" : score >= 70 ? "可用" : "需补充",
+    checks,
+    suggestions: checks.filter((item) => !item.ok).map((item) => `补充${item.label}`)
+  };
 }
 
 function buildNotes(input, rateConfig) {

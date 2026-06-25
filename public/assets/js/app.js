@@ -3,25 +3,31 @@ import {
   cargoTypes,
   countries,
   currencies,
+  apiModules,
+  automationRules,
   controlTowerMetrics,
   documentChecklist,
+  documentTemplates,
   faqs,
+  featureGapFindings,
   flowSteps,
   helpCategories,
   integrationRoadmap,
+  notificationChannels,
   packagingScenarios,
   packagingTips,
   pickupWindows,
   prohibitedItems,
   prohibitedCategories,
   quickActions,
+  returnReasons,
   riskRules,
   routeHighlights,
   serviceMatrix,
   services,
   shipmentTypes
 } from "./data.js";
-import { calculateQuote, formatMoney } from "./quote.js";
+import { calculateQuote, estimateDuty, formatMoney, lookupHsCode, scoreAddress } from "./quote.js";
 import { createOrder, defaultDraft, getContacts, getDraft, getLastOrderId, getOrder, getOrders, getOrderStats, saveDraft } from "./order.js";
 import { findTracking } from "./tracking.js";
 
@@ -65,6 +71,10 @@ function renderRoute(route) {
   if (path === "/confirm") return renderShipmentPage(7);
   if (path === "/success") return renderSuccessPage(route.params.get("order") || getLastOrderId());
   if (path === "/tracking") return renderTrackingPage(route.params.get("order") || "");
+  if (path === "/tools") return renderToolsPage();
+  if (path === "/documents") return renderDocumentsPage();
+  if (path === "/returns") return renderReturnsPage();
+  if (path === "/integrations") return renderIntegrationsPage();
   if (path === "/packaging") return renderPackagingPage();
   if (path === "/prohibited") return renderProhibitedPage();
   if (path === "/help") return renderHelpPage();
@@ -79,6 +89,7 @@ function renderHeader(activePath) {
     ["/", "首页"],
     ["/ship", "寄件"],
     ["/quote", "查询价格"],
+    ["/tools", "智能工具"],
     ["/tracking", "物流查询"],
     ["/packaging", "打包指南"],
     ["/prohibited", "禁寄品"],
@@ -124,6 +135,7 @@ function renderFooter() {
           <h4>服务</h4>
           <a href="#/quote">查询价格</a>
           <a href="#/ship">创建订单</a>
+          <a href="#/tools">智能工具</a>
           <a href="#/tracking">物流查询</a>
           <a href="#/packaging">打包指南</a>
         </div>
@@ -137,9 +149,10 @@ function renderFooter() {
         <div>
           <h4>后续扩展</h4>
           <a href="#/account">用户中心</a>
+          <a href="#/documents">单据中心</a>
+          <a href="#/returns">退件管理</a>
           <a href="#/admin">运营看板</a>
-          <a href="#/quote">渠道报价</a>
-          <a href="#/tracking">轨迹通知</a>
+          <a href="#/integrations">接口集成</a>
         </div>
       </div>
       <div class="container footer-bottom">© ${new Date().getFullYear()} 快递自助寄件平台。当前为前端演示版本，费用与时效为模拟数据。</div>
@@ -190,6 +203,28 @@ function renderHome() {
             <small>${text}</small>
           </div>
         `).join("")}
+      </div>
+    </section>
+    <section class="section alt">
+      <div class="container intelligence-grid">
+        <div class="ai-panel">
+          <span class="eyebrow">AI Shipping Desk</span>
+          <h2>智能寄件工作台</h2>
+          <p>先把国际快递常见判断做成前端模拟：地址质量、品类风险、税费预估、清关资料、通知订阅和退件流程。后续接真实 API 时，这里就是业务入口。</p>
+          <div class="ai-actions">
+            <a class="btn orange" href="#/tools">打开智能工具</a>
+            <a class="btn secondary" href="#/integrations">查看接口规划</a>
+          </div>
+        </div>
+        <div class="gap-board">
+          ${featureGapFindings.slice(0, 6).map(([title, text, status]) => `
+            <div class="gap-item">
+              <strong>${title}</strong>
+              <span>${text}</span>
+              <small>${status}</small>
+            </div>
+          `).join("")}
+        </div>
       </div>
     </section>
     <section class="section alt">
@@ -365,6 +400,10 @@ function renderQuotePage() {
             <span>输出：费用、时效、线路、风险等级和资料清单</span>
           </div>
           <div class="notice">报价为演示估算，真实价格需以后端渠道规则为准。</div>
+          <div class="side-actions">
+            <a class="btn full" href="#/tools">税费与 HS Code</a>
+            <a class="btn secondary full" href="#/documents">查看单据中心</a>
+          </div>
         </aside>
         <div class="card">
           ${renderQuoteForm("quote-form", false)}
@@ -855,6 +894,274 @@ function renderTrackingResult(result) {
   `;
 }
 
+function renderToolsPage() {
+  return `
+    ${renderPageHead("智能工具台", "集中处理国际寄件前最容易漏掉的判断：地址质量、HS Code、税费预估、通知偏好和智能建议。")}
+    <section class="section tight">
+      <div class="container tool-layout">
+        <aside class="card side-panel">
+          <h3>这一轮补齐的能力</h3>
+          <div class="mini-list">
+            ${featureGapFindings.map(([title, text, status]) => `<span><strong>${title}</strong><br>${text}<br><em>${status}</em></span>`).join("")}
+          </div>
+        </aside>
+        <div class="tool-stack">
+          <div class="card tool-card prominent-tool">
+            <div>
+              <span class="panel-kicker">AI Advisor</span>
+              <h2>寄件建议生成器</h2>
+              <p>输入目的地、货物属性和价值，生成一组模拟建议：服务选择、风险点、清关资料和操作提醒。</p>
+            </div>
+            <form id="advisor-form" class="tool-form" novalidate>
+              <div class="form-grid three">
+                <div class="field">
+                  <label>目的国家/地区 *</label>
+                  <select name="destination" required>${countryOptions("美国")}</select>
+                </div>
+                <div class="field">
+                  <label>重量 kg *</label>
+                  <input name="weight" type="number" value="1.5" min="0.1" step="0.1" required>
+                </div>
+                <div class="field">
+                  <label>申报价值 CNY *</label>
+                  <input name="declaredValue" type="number" value="600" min="1" step="1" required>
+                </div>
+              </div>
+              <div class="check-row" style="margin-top:12px">
+                <label class="chip-check"><input name="hasBattery" type="checkbox"> 带电</label>
+                <label class="chip-check"><input name="hasLiquid" type="checkbox"> 液体</label>
+                <label class="chip-check"><input name="isRemoteArea" type="checkbox"> 偏远地区</label>
+                <label class="chip-check"><input name="needInsurance" type="checkbox"> 需要保险</label>
+              </div>
+              <div class="form-actions">
+                <span class="muted">模拟建议，不替代真实渠道审核。</span>
+                <button class="btn orange" type="submit">生成建议</button>
+              </div>
+            </form>
+            <div id="advisor-result">${renderAdvisorResult({ destination: "美国", weight: 1.5, declaredValue: 600 })}</div>
+          </div>
+          <div class="grid two">
+            <div class="card tool-card">
+              <h2>税费 / 关税预估</h2>
+              <form id="duty-form" novalidate>
+                <div class="form-grid">
+                  <div class="field">
+                    <label>目的国家/地区 *</label>
+                    <select name="destination" required>${countryOptions("美国")}</select>
+                  </div>
+                  <div class="field">
+                    <label>申报价值 CNY *</label>
+                    <input name="declaredValue" type="number" value="800" min="1" step="1" required>
+                  </div>
+                  <div class="field">
+                    <label>预计运费 CNY *</label>
+                    <input name="freight" type="number" value="180" min="0" step="1" required>
+                  </div>
+                  <div class="field">
+                    <label>贸易条款 *</label>
+                    <select name="incoterm" required>
+                      <option>DDU</option>
+                      <option>DDP</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-actions"><span></span><button class="btn" type="submit">估算税费</button></div>
+              </form>
+              <div id="duty-result">${renderDutyResult(estimateDuty({ destination: "美国", declaredValue: 800, freight: 180, incoterm: "DDU" }))}</div>
+            </div>
+            <div class="card tool-card">
+              <h2>HS Code 辅助</h2>
+              <form id="hs-form" novalidate>
+                <div class="field">
+                  <label>物品关键词 *</label>
+                  <input name="keyword" value="服饰" placeholder="例如：服饰、电子配件、文件、玩具" required>
+                </div>
+                <div class="form-actions"><span class="muted">仅作前端样例查询。</span><button class="btn" type="submit">查询编码</button></div>
+              </form>
+              <div id="hs-result">${renderHsResult(lookupHsCode("服饰"))}</div>
+            </div>
+          </div>
+          <div class="grid two">
+            <div class="card tool-card">
+              <h2>地址质量体检</h2>
+              <form id="address-score-form" novalidate>
+                <div class="form-grid">
+                  ${input("name", "姓名", "Test Receiver", true)}
+                  ${input("phone", "电话", "+1 202 000 0000", true)}
+                  ${input("email", "邮箱", "receiver@example.com", true, "email")}
+                  ${input("country", "国家/地区", "美国", true)}
+                  ${input("city", "城市", "Los Angeles", true)}
+                  ${input("postalCode", "邮编", "90001", true)}
+                  ${input("taxId", "税号 / 识别号", "", false)}
+                  <div class="field">
+                    <label>地址类型 *</label>
+                    <select name="addressType" required><option>商业</option><option>住宅</option></select>
+                  </div>
+                  <div class="field full">
+                    <label>详细地址 *</label>
+                    <textarea name="address" required>100 Test Ave</textarea>
+                  </div>
+                </div>
+                <div class="form-actions"><span></span><button class="btn" type="submit">检查地址</button></div>
+              </form>
+              <div id="address-score-result">${renderAddressScore(scoreAddress({ name: "Test Receiver", phone: "+1 202 000 0000", email: "receiver@example.com", country: "美国", city: "Los Angeles", postalCode: "90001", address: "100 Test Ave", addressType: "商业" }))}</div>
+            </div>
+            <div class="card tool-card">
+              <h2>通知偏好</h2>
+              <p class="muted">当前只做前端展示，后续可以接邮件、短信、即时消息和客服系统。</p>
+              <div class="notification-grid">
+                ${notificationChannels.map(([title, text]) => `
+                  <label class="notification-option">
+                    <input type="checkbox" checked>
+                    <span><strong>${title}</strong><small>${text}</small></span>
+                  </label>
+                `).join("")}
+              </div>
+              <div class="notice soft-notice">建议至少开启订单确认、清关补件、派送中和已签收四类通知。</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderDocumentsPage() {
+  const order = getOrder(getLastOrderId()) || getOrders()[0];
+  return `
+    ${renderPageHead("单据中心", "集中预览运单面单、商业发票、装箱单、保险声明和清关补件通知。")}
+    <section class="section tight">
+      <div class="container dashboard-layout">
+        <div class="card">
+          <div class="section-head compact">
+            <div>
+              <h2>单据模板</h2>
+              <p>当前为前端模板预览，真实文件生成需后续接面单和清关接口。</p>
+            </div>
+          </div>
+          <div class="grid two">
+            ${documentTemplates.map(([title, text, status]) => `
+              <div class="document-tile">
+                <strong>${title}</strong>
+                <span>${text}</span>
+                <small>${status}</small>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+        <aside class="card side-panel-static">
+          <h3>商业发票预览</h3>
+          ${order ? renderInvoicePreview(order) : `
+            <div class="empty-state">
+              <h3>还没有订单</h3>
+              <p>创建一票订单后，这里会用订单资料生成商业发票预览。</p>
+              <a class="btn" href="#/ship">创建订单</a>
+            </div>
+          `}
+        </aside>
+      </div>
+    </section>
+  `;
+}
+
+function renderReturnsPage() {
+  const orders = getOrders();
+  return `
+    ${renderPageHead("退件管理", "模拟退件申请、原因选择、处理状态和后续接逆向物流能力。")}
+    <section class="section tight">
+      <div class="container layout">
+        <aside class="card side-panel">
+          <h3>退件流程</h3>
+          <div class="mini-list">
+            <span>1. 输入订单号并选择退件原因</span>
+            <span>2. 系统判断是否需要客服复核</span>
+            <span>3. 生成退件说明或后续退件面单</span>
+            <span>4. 后续接真实渠道后同步退件轨迹</span>
+          </div>
+        </aside>
+        <div class="card">
+          <h2>创建退件申请</h2>
+          <form id="return-form" novalidate>
+            <div class="form-grid">
+              <div class="field">
+                <label>订单号 *</label>
+                <input name="orderId" value="${orders[0]?.id || ""}" placeholder="例如 KD20260625000123" required>
+              </div>
+              <div class="field">
+                <label>退件原因 *</label>
+                <select name="reason" required>${returnReasons.map((item) => `<option>${item}</option>`).join("")}</select>
+              </div>
+              <div class="field">
+                <label>包裹状态 *</label>
+                <select name="condition" required>
+                  <option>未派送</option>
+                  <option>已签收但需退回</option>
+                  <option>清关退件</option>
+                  <option>包裹异常</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>联系人电话 *</label>
+                <input name="phone" placeholder="+852 ..." required>
+              </div>
+              <div class="field full">
+                <label>补充说明</label>
+                <textarea name="message" placeholder="说明退件原因、是否需要重新派送或退回寄件地。"></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <span class="muted">当前不会真实提交。</span>
+              <button class="btn orange" type="submit">生成退件申请</button>
+            </div>
+          </form>
+          <div id="return-result"></div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderIntegrationsPage() {
+  return `
+    ${renderPageHead("接口集成", "把当前静态模拟能力拆成后续真实系统可以替换的接口模块。")}
+    <section class="section tight">
+      <div class="container">
+        <div class="integration-hero">
+          <div>
+            <span class="eyebrow">API Ready</span>
+            <h2>从静态演示到真实寄件系统</h2>
+            <p>当前页面已经把报价、订单、轨迹、单据、支付、通知和客服工单拆成清晰模块。后续接真实服务时，优先替换 JS 工具层，再逐步接后端。</p>
+          </div>
+          <a class="btn orange" href="#/admin">查看运营看板</a>
+        </div>
+        <div class="grid three">
+          ${apiModules.map(([title, text]) => `
+            <div class="card">
+              <span class="icon-tile">API</span>
+              <h3>${title}</h3>
+              <p>${text}</p>
+            </div>
+          `).join("")}
+        </div>
+        <div class="section-head compact spaced">
+          <div>
+            <h2>自动化规则</h2>
+            <p>把人工经验沉淀为前端提醒和后端规则，减少漏填、误寄和异常处理成本。</p>
+          </div>
+        </div>
+        <div class="automation-board">
+          ${automationRules.map(([title, text]) => `
+            <div>
+              <strong>${title}</strong>
+              <span>${text}</span>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function renderPackagingPage() {
   return `
     ${renderPageHead("打包指南", "寄件前把包装做好，可以明显降低破损、延误和退件风险。")}
@@ -1170,6 +1477,11 @@ function bindPage(route) {
   document.querySelector("#shipment-step-form")?.addEventListener("submit", handleShipmentSubmit);
   document.querySelector("#tracking-form")?.addEventListener("submit", handleTrackingSubmit);
   document.querySelector("#contact-form")?.addEventListener("submit", handleContactSubmit);
+  document.querySelector("#advisor-form")?.addEventListener("submit", handleAdvisorSubmit);
+  document.querySelector("#duty-form")?.addEventListener("submit", handleDutySubmit);
+  document.querySelector("#hs-form")?.addEventListener("submit", handleHsSubmit);
+  document.querySelector("#address-score-form")?.addEventListener("submit", handleAddressScoreSubmit);
+  document.querySelector("#return-form")?.addEventListener("submit", handleReturnSubmit);
 }
 
 function handleShipmentSubmit(event) {
@@ -1217,6 +1529,92 @@ function handleContactSubmit(event) {
   if (!validateForm(form)) return;
   form.reset();
   document.querySelector("#contact-note").textContent = "留言已在前端模拟提交，后续可接入真实接口。";
+}
+
+function handleAdvisorSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!validateForm(form)) return;
+  const data = new FormData(form);
+  const input = {
+    destination: value(data, "destination"),
+    weight: value(data, "weight"),
+    declaredValue: value(data, "declaredValue"),
+    hasBattery: data.get("hasBattery") === "on",
+    hasLiquid: data.get("hasLiquid") === "on",
+    isRemoteArea: data.get("isRemoteArea") === "on",
+    needInsurance: data.get("needInsurance") === "on"
+  };
+  document.querySelector("#advisor-result").innerHTML = renderAdvisorResult(input);
+}
+
+function handleDutySubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!validateForm(form)) return;
+  const data = new FormData(form);
+  const result = estimateDuty({
+    destination: value(data, "destination"),
+    declaredValue: value(data, "declaredValue"),
+    freight: value(data, "freight"),
+    incoterm: value(data, "incoterm")
+  });
+  document.querySelector("#duty-result").innerHTML = renderDutyResult(result);
+}
+
+function handleHsSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!validateForm(form)) return;
+  const data = new FormData(form);
+  document.querySelector("#hs-result").innerHTML = renderHsResult(lookupHsCode(value(data, "keyword")));
+}
+
+function handleAddressScoreSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!validateForm(form)) return;
+  const data = new FormData(form);
+  const result = scoreAddress({
+    name: value(data, "name"),
+    phone: value(data, "phone"),
+    email: value(data, "email"),
+    country: value(data, "country"),
+    city: value(data, "city"),
+    postalCode: value(data, "postalCode"),
+    taxId: value(data, "taxId"),
+    addressType: value(data, "addressType"),
+    address: value(data, "address")
+  });
+  document.querySelector("#address-score-result").innerHTML = renderAddressScore(result);
+}
+
+function handleReturnSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!validateForm(form)) return;
+  const data = new FormData(form);
+  const orderId = value(data, "orderId");
+  const reason = value(data, "reason");
+  const condition = value(data, "condition");
+  const needsReview = ["清关资料不完整", "包裹破损", "包裹异常", "清关退件"].some((item) => `${reason} ${condition}`.includes(item));
+  document.querySelector("#return-result").innerHTML = `
+    <div class="result-box" style="margin-top:18px">
+      <div class="result-main">
+        <div>
+          <strong>退件申请已模拟生成</strong>
+          <div class="price" style="font-size:24px">${needsReview ? "需客服复核" : "可进入退件流程"}</div>
+        </div>
+        <a class="btn" href="#/tracking?order=${escapeHtml(orderId)}">查看原订单</a>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><span class="muted">退件编号</span><strong>RT${Date.now().toString().slice(-8)}</strong></div>
+        <div class="stat"><span class="muted">原订单</span><strong>${escapeHtml(orderId)}</strong></div>
+        <div class="stat"><span class="muted">处理建议</span><strong>${needsReview ? "人工确认" : "自动受理"}</strong></div>
+      </div>
+      <p class="muted">当前不会真实提交。后续接入退件 API 后，可生成退件面单、同步退件轨迹和客服工单。</p>
+    </div>
+  `;
 }
 
 function handleFaqSearch(event) {
@@ -1345,6 +1743,136 @@ function summaryCard(title, data) {
       </div>
     </div>
   `;
+}
+
+function renderAdvisorResult(input) {
+  const quote = calculateQuote({
+    origin: "中国香港",
+    destination: input.destination,
+    weight: input.weight,
+    length: 28,
+    width: 22,
+    height: 16,
+    declaredValue: input.declaredValue,
+    hasBattery: Boolean(input.hasBattery),
+    hasLiquid: Boolean(input.hasLiquid),
+    needInsurance: Boolean(input.needInsurance),
+    needPickup: true,
+    isRemoteArea: Boolean(input.isRemoteArea),
+    needClearanceSupport: Boolean(input.hasBattery || input.hasLiquid),
+    isResidential: false
+  });
+  const duty = estimateDuty({
+    destination: input.destination,
+    declaredValue: input.declaredValue,
+    freight: quote.total,
+    incoterm: "DDU"
+  });
+  const recommended = quote.riskLevel === "需人工确认" ? "标准快递 + 人工审核" : Number(input.weight) <= 1 ? "优先快递" : "标准快递";
+  const actions = [
+    `推荐服务：${recommended}`,
+    `建议线路：${quote.lane}`,
+    `预计费用：${quote.formattedTotal}`,
+    `税费预估：${formatMoney(duty.total)}`,
+    quote.riskLevel === "需人工确认" ? "先联系客服确认品类和清关资料" : "可继续创建订单"
+  ];
+  return `
+    <div class="result-box advisor-result">
+      <div class="result-main">
+        <div>
+          <strong>智能建议</strong>
+          <div class="price" style="font-size:26px">${quote.riskLevel}</div>
+        </div>
+        <a class="btn" href="#/ship">按建议下单</a>
+      </div>
+      <div class="recommendation-list">
+        ${actions.map((item) => `<span>${item}</span>`).join("")}
+      </div>
+      <div class="tag-list">${quote.checklist.map((item) => `<span>${item}</span>`).join("")}</div>
+    </div>
+  `;
+}
+
+function renderDutyResult(result) {
+  return `
+    <div class="result-box compact-result">
+      <div class="result-main">
+        <div>
+          <strong>预计税费</strong>
+          <div class="price" style="font-size:26px">${formatMoney(result.total)}</div>
+        </div>
+        <span class="status-pill">${result.incoterm}</span>
+      </div>
+      <div class="fee-list">
+        <div><span>预估关税 ${Math.round(result.dutyRate * 100)}%</span><strong>${formatMoney(result.duty)}</strong></div>
+        <div><span>预估税费 ${Math.round(result.vatRate * 100)}%</span><strong>${formatMoney(result.vat)}</strong></div>
+        <div><span>清关处理费</span><strong>${formatMoney(result.clearanceFee)}</strong></div>
+        <div class="total"><span>合计</span><strong>${formatMoney(result.total)}</strong></div>
+      </div>
+      <ul class="muted clean-list">${result.notes.map((note) => `<li>${note}</li>`).join("")}</ul>
+    </div>
+  `;
+}
+
+function renderHsResult(items) {
+  return `
+    <div class="hs-results">
+      ${items.map((item) => `
+        <div class="hs-item">
+          <strong>${item.code}</strong>
+          <span>${item.name}</span>
+          <small>关键词：${item.keyword} ｜ 参考税率：${Math.round(item.duty * 100)}%</small>
+          <p>${item.note}</p>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderAddressScore(result) {
+  return `
+    <div class="address-score">
+      <div class="score-ring">
+        <strong>${result.score}</strong>
+        <span>${result.level}</span>
+      </div>
+      <div>
+        <div class="checklist-grid">
+          ${result.checks.map((item) => `
+            <div class="checklist-item ${item.ok ? "pass" : "fail"}">
+              <strong>${item.ok ? "已通过" : "需补充"}</strong>
+              <span>${item.label}</span>
+            </div>
+          `).join("")}
+        </div>
+        ${result.suggestions.length ? `<p class="muted">建议：${result.suggestions.join("、")}。</p>` : `<p class="muted">地址资料完整度较高，可继续下单。</p>`}
+      </div>
+    </div>
+  `;
+}
+
+function renderInvoicePreview(order) {
+  return `
+    <div class="invoice-preview">
+      <div class="invoice-head">
+        <strong>Commercial Invoice</strong>
+        <span>${order.id}</span>
+      </div>
+      <div class="summary-list">
+        <div class="summary-row"><span>寄件方</span><strong>${escapeHtml(order.sender.name || "未填写")}</strong></div>
+        <div class="summary-row"><span>收件方</span><strong>${escapeHtml(order.recipient.name || "未填写")}</strong></div>
+        <div class="summary-row"><span>路线</span><strong>${escapeHtml(order.sender.country)} → ${escapeHtml(order.recipient.country)}</strong></div>
+        <div class="summary-row"><span>物品</span><strong>${escapeHtml(order.parcel.itemName || "未填写")}</strong></div>
+        <div class="summary-row"><span>价值</span><strong>${escapeHtml(order.parcel.currency || "USD")} ${escapeHtml(order.parcel.declaredValue || "0")}</strong></div>
+        <div class="summary-row"><span>用途</span><strong>${escapeHtml(order.customs?.purpose || "个人自用")}</strong></div>
+      </div>
+      <div class="notice soft-notice">这是前端预览。真实商业发票需以后端订单、渠道和清关规则生成。</div>
+    </div>
+  `;
+}
+
+function countryOptions(selected = "") {
+  return countries.map((item) => `<option value="${item.name}" ${item.name === selected ? "selected" : ""}>${item.name}</option>`).join("");
 }
 
 function renderPageHead(title, text) {
